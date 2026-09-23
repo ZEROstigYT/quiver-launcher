@@ -98,10 +98,57 @@ public static class GameLaunchService
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && executablePath.EndsWith(".app"))
             {
-                startInfo.FileName = "open";
-                startInfo.Arguments = $"\"{executablePath}\"";
-                startInfo.UseShellExecute = false;
-                startInfo.WorkingDirectory = gamePath;
+                var macAppContents = Path.Combine(executablePath, "Contents");
+                var macExecutableDir = Path.Combine(macAppContents, "MacOS");
+                var macInfoPlist = Path.Combine(macAppContents, "Info.plist");
+                string? macExecutableName = null;
+
+                if (File.Exists(macInfoPlist))
+                {
+                    try
+                    {
+                        var plistDocument = System.Xml.Linq.XDocument.Load(macInfoPlist);
+                        var plistDict = plistDocument.Root?.Element("dict");
+
+                        if (plistDict != null)
+                        {
+                            var plistElements = plistDict.Elements().ToList();
+
+                            for (var i = 0; i + 1 < plistElements.Count; i += 2)
+                            {
+                                if (plistElements[i].Name.LocalName == "key" &&
+                                    plistElements[i].Value == "CFBundleExecutable")
+                                {
+                                    macExecutableName = plistElements[i + 1].Value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        macExecutableName = null;
+                    }
+                }
+
+                var macExecutablePath = !string.IsNullOrWhiteSpace(macExecutableName)
+                    ? Path.Combine(macExecutableDir, macExecutableName)
+                    : string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(macExecutablePath) && File.Exists(macExecutablePath))
+                {
+                    startInfo.FileName = macExecutablePath;
+                    startInfo.UseShellExecute = false;
+                    startInfo.WorkingDirectory = macExecutableDir;
+                    HostProcessEnvironment.Sanitize(startInfo);
+                }
+                else
+                {
+                    startInfo.FileName = "open";
+                    startInfo.Arguments = $"\"{executablePath}\"";
+                    startInfo.UseShellExecute = false;
+                    startInfo.WorkingDirectory = gamePath;
+                }
             }
             else if (needsWine && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {

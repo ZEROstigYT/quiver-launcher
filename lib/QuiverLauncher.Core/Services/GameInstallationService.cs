@@ -359,6 +359,14 @@ public static class GameInstallationService
         if (!Directory.Exists(path))
             return [];
 
+        var normalizedPath = Path.TrimEndingDirectorySeparator(path);
+
+        if (platform == OSPlatform.OSX &&
+            normalizedPath.EndsWith(".app", StringComparison.OrdinalIgnoreCase))
+        {
+            return [normalizedPath];
+        }
+
         var executables = new List<string>();
         if (IsCompatibilityDirectory(path)) return [];
         var enumeration = new EnumerationOptions
