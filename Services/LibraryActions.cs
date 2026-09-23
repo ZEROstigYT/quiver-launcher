@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Avalonia.Platform.Storage;
 using QuiverLauncher.Core.Models;
 using QuiverLauncher.Core.Services;
@@ -168,11 +170,52 @@ public sealed class LibraryActions
                 return;
             }
 
-            var folders = await _storage().OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = $"Select existing install folder for {game.Name}", AllowMultiple = false }).WaitAsync(_session.Token);
-            _session.Token.ThrowIfCancellationRequested();
-            if (folders == null || folders.Count == 0)
-                return;
-            var selectedPath = folders[0].Path.LocalPath;
+            string? selectedPath;
+
+            if (OperatingSystem.IsMacOS())
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "/usr/bin/osascript",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.StartInfo.ArgumentList.Add("-e");
+                process.StartInfo.ArgumentList.Add($"set appPath to choose application with prompt \"Select existing app for {game.Name}\"");
+                process.StartInfo.ArgumentList.Add("-e");
+                process.StartInfo.ArgumentList.Add("POSIX path of (path to appPath)");
+
+                process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync(_session.Token);
+                await process.WaitForExitAsync(_session.Token);
+                _session.Token.ThrowIfCancellationRequested();
+
+                if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+                    return;
+
+                selectedPath = output.Trim();
+            }
+            else
+            {
+                var folders = await _storage().OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    Title = $"Select existing install folder for {game.Name}",
+                    AllowMultiple = false
+                }).WaitAsync(_session.Token);
+
+                _session.Token.ThrowIfCancellationRequested();
+
+                if (folders == null || folders.Count == 0)
+                    return;
+
+                selectedPath = folders[0].Path.LocalPath;
+            }
             if (string.IsNullOrWhiteSpace(selectedPath) || !Directory.Exists(selectedPath))
             {
                 await ShowMessageBoxAsync("The selected install folder could not be found.", "Install Folder Not Found");
