@@ -54,7 +54,6 @@ internal sealed class DesktopInterfaceScaling : IDisposable
         _content = Wrap(window);
         settings.PropertyChanged += SettingsChanged;
         window.PropertyChanged += WindowChanged;
-        window.PositionChanged += PositionChanged;
         window.Opened += Opened;
         window.Closed += Closed;
         window.Screens.Changed += ScreensChanged;
@@ -77,9 +76,16 @@ internal sealed class DesktopInterfaceScaling : IDisposable
     }
     private void WindowChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property.Name is "RenderScaling" or "WindowState" or "FrameSize" or "WindowDecorations" or "ClientSize") Refresh();
+        if (OperatingSystem.IsMacOS())
+        {
+            if (e.Property.Name is "RenderScaling" or "WindowState" or "WindowDecorations")
+                Refresh();
+            return;
+        }
+
+        if (e.Property.Name is "RenderScaling" or "WindowState" or "FrameSize" or "WindowDecorations" or "ClientSize")
+            Refresh();
     }
-    private void PositionChanged(object? sender, PixelPointEventArgs e) => Refresh();
     private void ScreensChanged(object? sender, EventArgs e) => Refresh();
     private void Opened(object? sender, EventArgs e) => Refresh();
     private void Closed(object? sender, EventArgs e) => Dispose();
@@ -223,7 +229,6 @@ internal sealed class DesktopInterfaceScaling : IDisposable
         _disposed = true;
         _settings.PropertyChanged -= SettingsChanged;
         _window.PropertyChanged -= WindowChanged;
-        _window.PositionChanged -= PositionChanged;
         _window.Opened -= Opened;
         _window.Closed -= Closed;
         _window.Screens.Changed -= ScreensChanged;

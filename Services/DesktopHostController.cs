@@ -58,6 +58,14 @@ public sealed class DesktopHostController : IDisposable
     private void ApplyWindowChrome()
     {
         var showTopBar = _view.SettingsModel.ShowOSTopBar;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            Window.WindowDecorations = WindowDecorations.Full;
+            Window.ExtendClientAreaToDecorationsHint = false;
+            return;
+        }
+
         Window.WindowDecorations = showTopBar ? WindowDecorations.Full : WindowDecorations.BorderOnly;
         Window.ExtendClientAreaToDecorationsHint = !showTopBar;
     }

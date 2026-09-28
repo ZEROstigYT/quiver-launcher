@@ -31,7 +31,15 @@ public class DesktopHostControllerTests
         using var controller = new DesktopHostController(window, view);
         void AssertChrome(bool visible)
         {
-            window.WindowDecorations.Should().Be(visible ? WindowDecorations.Full : WindowDecorations.BorderOnly);
+            if (OperatingSystem.IsMacOS())
+            {
+                window.WindowDecorations.Should().Be(WindowDecorations.Full);
+                window.ExtendClientAreaToDecorationsHint.Should().BeFalse();
+                return;
+            }
+
+            window.WindowDecorations.Should().Be(
+                visible ? WindowDecorations.Full : WindowDecorations.BorderOnly);
             window.ExtendClientAreaToDecorationsHint.Should().Be(!visible);
         }
         try
