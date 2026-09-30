@@ -8,5 +8,5 @@ namespace QuiverLauncher.Services;
 public static class AnnouncementDefaults
 {
     public const string RemoteUrl =
-        "https://raw.githubusercontent.com/tgeorgiadis/quiver-launcher/main/announcement.json";
+        "https://raw.githubusercontent.com/ZEROstigYT/quiver-launcher/main/announcement.json";
 }
